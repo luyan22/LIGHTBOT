@@ -125,6 +125,7 @@ struct operation{//执行模块
 	}
 	
 	int test = 0;
+	int test_again = 0;
 	
 	Result error_return(){
 		Result ans;
