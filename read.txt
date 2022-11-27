@@ -1,0 +1,12 @@
+LOAD map.txt
+
+
+OP ops/1.txt
+3
+1 P1
+7 LIT JMP TL MOV LIT P2 P1
+6 JMP JMP MOV TL JMP TL
+
+LIMIT 400
+
+RUN ops/1.txt

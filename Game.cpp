@@ -1,8 +1,9 @@
 #include<iostream>
 #include<cstring>
-
+#include<cmath>
+#include<iomanip>
 using namespace std;
-int read(){//å¿«é€Ÿè¯»å…¥ å¿½ç•¥å³å¯ 
+int read(){//¿ìËÙ¶ÁÈë ºöÂÔ¼´¿É 
 	char s;
 	int x = 0, f = 1;
 	s = getchar();
@@ -29,156 +30,239 @@ struct Position{
 	int x, y;
 };
 enum Direction{
-	UP, DOWN, LEFT, RIGHT
+	UP, RIGHT, DOWN, LEFT//ÄæÊ±Õë 
 };
 struct Robot{
 	Position pos;
-	Direction dir;//æœå‘ 
+	Direction dir;//³¯Ïò 
+	int step_run = 0;//ÒÑ¾­×ßÁËµÄ²½Êı 
 };
 struct Light{
-	Position pos;//ç¯çš„ä½ç½® 
-	bool lighten;//1è¡¨ç¤ºè¢«ç‚¹äº® 
+	Position pos;//µÆµÄÎ»ÖÃ 
+	bool lighten;//1±íÊ¾±»µãÁÁ 
 };
-// å•å…ƒæ ¼ç±»å‹
+// µ¥Ôª¸ñÀàĞÍ
 struct Cell {
- 	int height; // é«˜åº¦
- 	int light_id; // ç¯æ ‡è¯†ï¼Œ-1è¡¨ç¤ºè¯¥å•å…ƒæ ¼ä¸Šæ²¡æœ‰ç¯ 1è¡¨ç¤ºæœ‰ç¯ 
- 	bool robot; // true/falseåˆ†åˆ«è¡¨ç¤ºæœºå™¨äººåœ¨/ä¸åœ¨è¯¥å•å…ƒæ ¼ä¸Š
+ 	int height; // ¸ß¶È
+ 	bool robot; // true/false·Ö±ğ±íÊ¾»úÆ÷ÈËÔÚ/²»ÔÚ¸Ãµ¥Ôª¸ñÉÏ
 };
-// æŒ‡ä»¤ç±»å‹
+// Ö¸ÁîÀàĞÍ
 enum OpType {
  	TL, TR, MOV, JMP, LIT, CALL
 };
-// TLä¸ºå·¦è½¬ï¼ŒTRä¸ºå³è½¬ï¼ŒMOVä¸ºå‘å‰è¡Œèµ°ï¼ŒJMPä¸ºè·³è·ƒï¼ŒLITä¸ºç‚¹äº®ç¯ï¼›
-// ä½¿ç”¨CALLè¡¨ç¤ºè°ƒç”¨MAINï¼ŒCALL + 1è¡¨ç¤ºè°ƒç”¨P1ï¼Œä»¥æ­¤ç±»æ¨ã€‚
-// è¿‡ç¨‹ç±»å‹
+// TLÎª×ó×ª£¬TRÎªÓÒ×ª£¬MOVÎªÏòÇ°ĞĞ×ß£¬JMPÎªÌøÔ¾£¬LITÎªµãÁÁµÆ£»
+// Ê¹ÓÃCALL±íÊ¾µ÷ÓÃMAIN£¬CALL + 1±íÊ¾µ÷ÓÃP1£¬ÒÔ´ËÀàÍÆ¡£
+// ¹ı³ÌÀàĞÍ
 struct Proc {
- 	OpType ops[MAX_OPS]; // æŒ‡ä»¤è®°å½•ï¼ŒMAX_OPSä¸ºåˆç†å¸¸æ•°
- 	int count; // æœ‰æ•ˆæŒ‡ä»¤æ•°
+ 	OpType ops[MAX_OPS]; // Ö¸Áî¼ÇÂ¼£¬MAX_OPSÎªºÏÀí³£Êı
+ 	int count; // ÓĞĞ§Ö¸ÁîÊı
 };
-// æŒ‡ä»¤åºåˆ—ç±»å‹
+// Ö¸ÁîĞòÁĞÀàĞÍ
 struct OpSeq {
- // è¿‡ç¨‹è®°å½•ï¼ŒMAX_PROCSä¸ºåˆç†å¸¸æ•°
- // procs[0]ä¸ºMAINè¿‡ç¨‹ï¼Œprocs[1]ä¸ºP1è¿‡ç¨‹ï¼Œä»¥æ­¤ç±»æ¨
+ // ¹ı³Ì¼ÇÂ¼£¬MAX_PROCSÎªºÏÀí³£Êı
+ // procs[0]ÎªMAIN¹ı³Ì£¬procs[1]ÎªP1¹ı³Ì£¬ÒÔ´ËÀàÍÆ
  	Proc procs[MAX_PROCS];
- 	int count; // æœ‰æ•ˆè¿‡ç¨‹æ•°
+ 	int count; // ÓĞĞ§¹ı³ÌÊı
 };
-// åœ°å›¾çŠ¶æ€ç±»å‹
+// µØÍ¼×´Ì¬ÀàĞÍ
 struct Map {
- // å•å…ƒæ ¼ç»„æˆäºŒç»´æ•°ç»„ï¼ŒMAX_ROWã€MAX_COLä¸ºåˆç†å¸¸æ•°
+ // µ¥Ôª¸ñ×é³É¶şÎ¬Êı×é£¬MAX_ROW¡¢MAX_COLÎªºÏÀí³£Êı
 	Cell cells[MAX_ROW][MAX_COL];
-	int row, col; // æœ‰æ•ˆè¡Œæ•°ã€æœ‰æ•ˆåˆ—æ•°
- // ç¯è®°å½•ï¼ŒMAX_LITä¸ºåˆç†å¸¸æ•°
+	int row, col; // ÓĞĞ§ĞĞÊı¡¢ÓĞĞ§ÁĞÊı
+ // µÆ¼ÇÂ¼£¬MAX_LITÎªºÏÀí³£Êı
  	Light lights[MAX_LIT];
- 	int num_lights; // æœ‰æ•ˆç¯æ•°
- // åœ°å›¾ä¸ŠåŒæ—¶åªæœ‰ä¸€ä¸ªæœºå™¨äºº
+ 	int num_lights; // ÓĞĞ§µÆÊı
+ // µØÍ¼ÉÏÍ¬Ê±Ö»ÓĞÒ»¸ö»úÆ÷ÈË
  	Robot robot;
- // æ¯ä¸ªè¿‡ç¨‹çš„æŒ‡ä»¤æ•°é™åˆ¶
+ // Ã¿¸ö¹ı³ÌµÄÖ¸ÁîÊıÏŞÖÆ
  	int op_limit[MAX_PROCS];
 };
-// æ¸¸æˆçŠ¶æ€ç±»å‹
+// ÓÎÏ·×´Ì¬ÀàĞÍ
 struct Game {
- 	char map_name[MAX_PATH_LEN]; // å½“å‰åœ°å›¾çš„æ–‡ä»¶è·¯å¾„å
- 	Map map_init; // åœ°å›¾åˆå§‹çŠ¶æ€
- 	Map map_run; // æŒ‡ä»¤æ‰§è¡Œè¿‡ç¨‹ä¸­çš„åœ°å›¾çŠ¶æ€
- // è‡ªåŠ¨ä¿å­˜çš„æ–‡ä»¶è·¯å¾„åï¼ŒMAX_PATH_LENä¸ºåˆç†å¸¸æ•°
+ 	char map_name[MAX_PATH_LEN]; // µ±Ç°µØÍ¼µÄÎÄ¼şÂ·¾¶Ãû
+ 	Map map_init; // µØÍ¼³õÊ¼×´Ì¬
+ 	Map map_run; // Ö¸ÁîÖ´ĞĞ¹ı³ÌÖĞµÄµØÍ¼×´Ì¬
+ // ×Ô¶¯±£´æµÄÎÄ¼şÂ·¾¶Ãû£¬MAX_PATH_LENÎªºÏÀí³£Êı
  	char save_path[MAX_PATH_LEN];
-    int auto_save_id; // è‡ªåŠ¨ä¿å­˜æ ‡è¯†   è§„å®šï¼š 0:ä¸éœ€è¦è‡ªåŠ¨ä¿å­˜   1: éœ€è¦è‡ªåŠ¨ä¿å­˜ 
+    int auto_save_id; // ×Ô¶¯±£´æ±êÊ¶   ¹æ¶¨£º 0:²»ĞèÒª×Ô¶¯±£´æ   1: ĞèÒª×Ô¶¯±£´æ 
  	
 	 
-	int limit; // æ­¥æ•°ä¸Šé™ï¼ˆç”¨æ¥é¿å…æ— é™é€’å½’ï¼‰
-	int proc_num_limit;//è¿‡ç¨‹æ•°é‡ä¸Šé™ 
-	int proc_limit[MAX_PROS];//æ¯ä¸ªè¿‡ç¨‹ æŒ‡ä»¤ä¸Šé™ 
+	int limit; // ²½ÊıÉÏÏŞ£¨ÓÃÀ´±ÜÃâÎŞÏŞµİ¹é£©
+	int proc_num_limit;//¹ı³ÌÊıÁ¿ÉÏÏŞ 
+	int proc_limit[MAX_PROS];//Ã¿¸ö¹ı³Ì Ö¸ÁîÉÏÏŞ 
  	
- 	OpSeq opseq;//è¿‡ç¨‹åºåˆ—
+ 	OpSeq opseq;//¹ı³ÌĞòÁĞ
 };
-Game game; // å…¨å±€å”¯ä¸€çš„Gameå˜é‡
+Game game; // È«¾ÖÎ¨Ò»µÄGame±äÁ¿
 
 
 enum ResultType{
-	ERROR_READ,//æ–°å»º è¯»å…¥åºåˆ—ä¸åˆæ³•ï¼ˆè¶…å‡ºé™åˆ¶ï¼‰ 
-	LIGHT,//å·²ç»ç‚¹äº®æ‰€æœ‰ç¯ 
-	LIMIT,//è¾¾åˆ°æ“ä½œæ•°ä¸Šé™ 
-	DARK//MAINå®Œæˆ 
+	LIGHT,//ÒÑ¾­µãÁÁËùÓĞµÆ 
+	LIMIT,//´ïµ½²Ù×÷ÊıÉÏÏŞ 
+	DARK//MAINÍê³É 
 };
 
 
 
 struct Result{
-	int steps;//æ€»æ­¥æ•° 
+	int steps;//×Ü²½Êı 
 	ResultType result;
 };
 
-//ä»¥ä¸‹ä¸ºæ¨¡å—å†…éƒ¨å˜é‡ä¸å‡½æ•° 
-struct map_drawing{//ç»˜å›¾æ¨¡å— 
+//ÒÔÏÂÎªÄ£¿éÄÚ²¿±äÁ¿Óëº¯Êı 
+struct map_drawing{//»æÍ¼Ä£¿é 
 	
 }module_1;
 
-struct operation{//æ‰§è¡Œæ¨¡å— 
-	void compiling_op(){//å°†å‘½ä»¤åºåˆ—å­˜å…¥Obseq
-	//Obseq ä¸­æœ‰å¤šä¸ª Proc
+struct operation{//Ö´ĞĞÄ£¿é 
+	int xx[4] = {-1, 0, 1, 0};//Ç°½øÊ±ÓÃÓÚÈ·¶¨¾ßÌå×ø±ê±ä»¯ 
+	int yy[4] = {0, 1, 0, -1};//ÉÏÓÒÏÂ×ó 
+	void compiling_op(){//½«ÃüÁîĞòÁĞ´æÈëObseq
+	//Obseq ÖĞÓĞ¶à¸ö Proc
 	//struct Proc {
-	// 	OpType ops[MAX_OPS]; // æŒ‡ä»¤è®°å½•ï¼ŒMAX_OPSä¸ºåˆç†å¸¸æ•°
-	// 	int count; // æœ‰æ•ˆæŒ‡ä»¤æ•°
+	// 	OpType ops[MAX_OPS]; // Ö¸Áî¼ÇÂ¼£¬MAX_OPSÎªºÏÀí³£Êı
+	// 	int count; // ÓĞĞ§Ö¸ÁîÊı
 	//}; 
 	
 	}
-	
-	int test = 0;
-	int test_again = 0;
-	
-	Result error_return(){
-		Result ans;
-		ans.steps = 0;
-		ans.result = ERROR_READ;
-		return ans;
-	}
-	OpType op_reader(){//å°†å­—ç¬¦ä¸²è½¬åŒ–ä¸ºOptype  undone
+//	Result error_return(){
+//		Result ans;
+//		ans.steps = 0;
+//		ans.result = ERROR_READ;
+//		return ans;
+//	}
+	OpType op_reader(){//½«×Ö·û´®×ª»¯ÎªOptype  done
 		char use[10];
 		OpType ans;
-		if(strcmp(use,"LIT") == 0)ans = LIT;
-		else if(strcmp(use,"JMP") == 0)ans = JMP;
-		else if(strcmp(use,"MOV") == 0)ans = MOV;
-		else if(strcmp(use,"TL") == 0)ans = TL;
-		else if(strcmp(use,"TR") == 0)ans = TR;
+		cin >> use; 
+		//cout << use << endl;
+		if(use[0] == 'L')ans = LIT;
+		else if(use[0] == 'J')ans = JMP;
+		else if(use[0] == 'M')ans = MOV;
+		else if(use[0] == 'T' && use[1] == 'L')ans = TL;
+		else if(use[0] == 'T')ans = TR;
 		else if(use[0] == 'P'){
 			int x = 0;
-			for(int i = 1; i < strlen(use); i++){//è¯»å…¥Påé¢çš„æ•°å­— 
+			for(int i = 1; i < strlen(use); i++){//¶ÁÈëPºóÃæµÄÊı×Ö 
 				x *= 10;
 				x += use[i] - '0';
 			}
-			ans = CALL;//unsolve
+			ans = (OpType)(CALL + x);
+			
 		}
+		return ans;
 	}
-	bool check_light(){//æ£€æŸ¥ç¯æ˜¯å¦å…¨è¢«ç‚¹äº® 
-		for(int i = 1; i <= game.map_init.num_lights; i++){
+	bool check_light(){//¼ì²éµÆÊÇ·ñÈ«±»µãÁÁ 
+		for(int i = 0; i < game.map_init.num_lights; i++){
 			if(game.map_init.lights[i].lighten == 0)return 0;
 		}
 		return 1;
 	}
-
-	Result Robot_run(const char *path){//æ‰§è¡Œå‘½ä»¤åºåˆ—  è¯»å…¥æ–‡ä»¶è·¯å¾„åç§° 
-		freopen("path", "r", stdin);
-		//undone prework ä¸ç¬¬ä¸€æ¨¡å—çš„äº¤äº’æœªå®Œæˆ 
-		Result ans;
-		ans.steps = 0;
-		//è¯»å…¥å‘½ä»¤åºåˆ—  ä¿®æ”¹opseq 
-		game.opseq.count = read();//è¿‡ç¨‹ä¸ªæ•° 
-		if(game.opseq.count > game.proc_num_limit)return error_return();
-		for(int i = 0; i < game.opseq.count; i++){
-			game.opseq.procs[i].count = read();//æ¯ä¸ªè¯»å…¥çš„å‘½ä»¤åºåˆ—çš„æŒ‡ä»¤ä¸ªæ•°
-			if(game.opseq.procs[i].count > game.proc_limit[i])return error_return();
-			for(int j = 0; j < game.opseq.procs[i].count; j++){
-				game.opseq.procs[i].ops[j] = op_reader();//unsolve 
+	
+	void Proc_run(int id){//ÒÔÒ»¸ö¹ı³ÌÎªµ¥Î»  ÊäÈë¹ı³Ì±àºÅ 
+		//cout << check_light() << endl;
+		if(check_light())return;
+		for(int j = 0; j < game.opseq.procs[id].count; j++){
+			//cout << game.map_run.robot.pos.x <<" "<<
+//			game.map_run.robot.pos.y << " " << 
+//			game.map_run.cells[game.map_run.robot.pos.x][game.map_run.robot.pos.y]
+//			.height<< endl;
+			//cout << j << " " << game.opseq.procs[id].ops[j] << endl;
+			if(game.map_run.robot.step_run > game.limit)break;//³¬¹ı²½ÊıÏŞÖÆÁË 
+			if(check_light())break; 
+			game.map_run.robot.step_run += 1;
+			if(game.opseq.procs[id].ops[j] == TL){//Ë³Ê±ÕëĞı×ª ÓÒ×ª¼ÓÒ» 
+				game.map_run.robot.dir 
+				= (Direction)((game.map_run.robot.dir + 3) % 4);
+			} 
+			else if(game.opseq.procs[id].ops[j] == TR){
+				game.map_run.robot.dir 
+				= (Direction)(game.map_run.robot.dir + 1 % 4);
+			}
+			else if(game.opseq.procs[id].ops[j] == MOV){
+				int x = game.map_run.robot.pos.x;
+				int y = game.map_run.robot.pos.y;
+				int d = game.map_run.robot.dir;
+				int new_x = game.map_run.robot.pos.x + xx[d];
+				int new_y = game.map_run.robot.pos.y + yy[d];
+//				cout << d << endl;
+//				cout << x << " "<< y << " "<< new_x << " " << new_y << endl;
+				if(new_x < 0 || new_x > game.map_init.row //ÓĞ´ıÌÖÂÛ 
+				|| new_y < 0 || new_y > game.map_init.col)continue;
+				if(game.map_init.cells[new_x][new_y].height == 0)continue;
+				
+//				cout << new_x << " " << new_y << endl;
+//				cout << game.map_init.cells[x][y].height << 
+//				game.map_init.cells[new_x][new_y].height << endl;
+				if(game.map_init.cells[x][y].height != 
+				game.map_init.cells[new_x][new_y].height)continue;//¸ß¶È²»Í¬ ºöÂÔ 
+				game.map_run.robot.pos.x = new_x;
+				game.map_run.robot.pos.y = new_y;
+				
+			}
+			else if(game.opseq.procs[id].ops[j] == JMP){
+				int x = game.map_run.robot.pos.x;
+				int y = game.map_run.robot.pos.y;
+				int d = game.map_run.robot.dir;
+				int new_x = game.map_run.robot.pos.x + xx[d];
+				int new_y = game.map_run.robot.pos.y + yy[d];
+				
+				if(abs(game.map_init.cells[x][y].height - 
+				game.map_init.cells[new_x][new_y].height)
+				!= 1)continue;//¸ß¶È²»Ïà²î1 ºöÂÔ 
+				game.map_run.robot.pos.x = new_x;
+				game.map_run.robot.pos.y = new_y;
+			}
+			else if(game.opseq.procs[id].ops[j] == LIT){
+				int x = game.map_run.robot.pos.x;
+				int y = game.map_run.robot.pos.y;
+				//cout << "LIT" << x << " " << y << endl;
+				for(int i = 0; i < game.map_init.num_lights; i++){
+					if(game.map_init.lights[i].pos.x == x && 
+					game.map_init.lights[i].pos.y == y){
+						game.map_run.lights[i].lighten = 1;
+					}
+				}
+			}
+			else if(game.opseq.procs[id].ops[j] >= CALL){//´¦Àí CALL 
+				int k = game.opseq.procs[id].ops[j] - CALL;
+				Proc_run(k);
 			}
 		}
+		return;
+	}
 	
-		//æ‰§è¡Œå‘½ä»¤åºåˆ—  ä»…æ‰§è¡Œå‘½ä»¤åºåˆ—procs[0] 
-		for(int i = 0; i < game.opseq.procs[0].count; i++){
-		
+	Result Robot_run(const char *path){//Ö´ĞĞÃüÁîĞòÁĞ  ¶ÁÈëÎÄ¼şÂ·¾¶Ãû³Æ 
+		freopen(path, "r", stdin);
+		//undone prework ÓëµÚÒ»Ä£¿éµÄ½»»¥Î´Íê³É 
+		Result ans;
+		//¶ÁÈëÃüÁîĞòÁĞ  ĞŞ¸Äopseq 
+		game.opseq.count = read();//¹ı³Ì¸öÊı 
+		for(int i = 0; i < game.opseq.count; i++){
+			game.opseq.procs[i].count = read();//Ã¿¸ö¶ÁÈëµÄÃüÁîĞòÁĞµÄÖ¸Áî¸öÊı
+			for(int j = 0; j < game.opseq.procs[i].count; j++){
+				//cout << op_reader() << endl;
+				game.opseq.procs[i].ops[j] = op_reader();
+			}
 		}
+		
+		cout<<"¿ªÊ¼Ö´ĞĞ"<<endl;
+		//Ö´ĞĞÃüÁîĞòÁĞ  ½öÖ´ĞĞÃüÁîĞòÁĞprocs[0] 
+		game.map_run = game.map_init;
+		//**Î´Íê³ÉinitÓërunµÄ×ª»¯ 
+		Proc_run(0);
+		game.map_init = game.map_run;
+		
+//		for(int i = 0; i < game.map_init.num_lights; i++){
+//			cout << game.map_init.lights[i].lighten << endl;
+//		}
+		//cout<<"zyzy"<<check_light();
+		if(check_light())ans.result = LIGHT;
+		else if(game.map_run.robot.step_run > game.limit)ans.result = LIMIT;
+		else ans.result = DARK;
 	
 		freopen("CON", "r", stdin);
+		return ans;
 	}
 }module_2;
 
@@ -187,8 +271,8 @@ struct operation{//æ‰§è¡Œæ¨¡å—
 
 
 
-struct order{//äº¤äº’æ¨¡å—å‡½æ•° 
-	char use[MAX_PATH_LEN];//ç”¨äºè¯»å–åœ°å€ç­‰ å­—ç¬¦ä¸²å˜é‡
+struct order{//½»»¥Ä£¿éº¯Êı 
+	char use[MAX_PATH_LEN];//ÓÃÓÚ¶ÁÈ¡µØÖ·µÈ ×Ö·û´®±äÁ¿
 	Direction dir_reader(int x){
 		Direction ans;
 		if(x == 0)ans = UP;
@@ -197,8 +281,8 @@ struct order{//äº¤äº’æ¨¡å—å‡½æ•°
 		else ans = RIGHT;
 		return ans;
 	}
-	void LOAD(){//åŠ è½½åœ°å›¾  done
-		cin >> game.map_name;//ä»¥map_nameä¸ºåœ°å€åŠ è½½åœ°å›¾ 
+	void LOAD(){//¼ÓÔØµØÍ¼  done
+		cin >> game.map_name;//ÒÔmap_nameÎªµØÖ·¼ÓÔØµØÍ¼ 
 		freopen(game.map_name,"r",stdin);
 		int row = 
 		game.map_init.row = read();
@@ -208,57 +292,58 @@ struct order{//äº¤äº’æ¨¡å—å‡½æ•°
 	
 		game.map_init.num_lights = read();
 	
-		game.proc_num_limit = read();//è¯»å…¥è¿‡ç¨‹æ•° æœ€å¤§å€¼
+		game.proc_num_limit = read();//¶ÁÈë¹ı³ÌÊı ×î´óÖµ
 		for(int i = 0; i < row; i++){
 			for(int j = 0; j < col; j++){
 				game.map_init.cells[i][j].height = read();
 			}
 		} 
 	
-		for(int i = 1; i <= game.map_init.num_lights; i++){
+		for(int i = 0; i < game.map_init.num_lights; i++){
 			int xx = game.map_init.lights[i].pos.y = read();
-			int yy = game.map_init.lights[i].pos.x = read();//è¯»å…¥ä½ç½®
+			int yy = game.map_init.lights[i].pos.x = read();//¶ÁÈëÎ»ÖÃ
 			
-			game.map_init.lights[i].lighten = 0;//åˆå§‹åŒ– çŠ¶æ€ä¸ºç­ 
-						
-			game.map_init.cells[xx][yy].light_id = 1;//æœ‰ç¯ 
+			game.map_init.lights[i].lighten = 0;//³õÊ¼»¯ ×´Ì¬ÎªÃğ 		
 		}
 	
-		for(int i = 0; i < game.proc_num_limit; i++){//è¯»å…¥æ¯ä¸ªè¿‡ç¨‹çš„æ“ä½œä¸Šé™ 
-			game.proc_limit[i] = read();//ä¸€ä¸ªpocs æ˜¯ä¸€ä¸ªè¿‡ç¨‹ ä¸€ä¸ªè¿‡ç¨‹æ˜¯ä¸€ä¸ªæŒ‡ä»¤ä¸² 
+		for(int i = 0; i < game.proc_num_limit; i++){//¶ÁÈëÃ¿¸ö¹ı³ÌµÄ²Ù×÷ÉÏÏŞ 
+			game.proc_limit[i] = read();//Ò»¸öpocs ÊÇÒ»¸ö¹ı³Ì Ò»¸ö¹ı³ÌÊÇÒ»¸öÖ¸Áî´® 
 		}
 		game.map_init.robot.pos.y = read();
 		game.map_init.robot.pos.x = read();
 		game.map_init.robot.dir = dir_reader(read());
 		freopen("CON","r",stdin);
 	}
-	void AUTOSAVE(){//è®¾ç½®è‡ªåŠ¨ä¿å­˜  done
+	void AUTOSAVE(){//ÉèÖÃ×Ô¶¯±£´æ  done
 		cin >> use;
-		if(use[0] == 'O'){
-			game.auto_save_id = 0;//å…³é—­è‡ªåŠ¨ä¿å­˜ 
+		//cout << use << endl;
+		if(use == "OFF"){
+			game.auto_save_id = 0;//¹Ø±Õ×Ô¶¯±£´æ 
 		}
 		else{
-			strcpy(game.map_name, use);//å¼€å¯è‡ªåŠ¨ä¿å­˜ å°†useä¼ ç»™å…¨å±€å˜é‡ ç”¨äºæ¨¡å—äºŒ è¿›ä¸€æ­¥å®ç°è‡ªåŠ¨ä¿å­˜ 
+			game.auto_save_id = 1;
+			strcpy(game.save_path, use);//¿ªÆô×Ô¶¯±£´æ ½«use´«¸øÈ«¾Ö±äÁ¿ ÓÃÓÚÄ£¿é¶ş ½øÒ»²½ÊµÏÖ×Ô¶¯±£´æ 
 		}
+		cout << game.auto_save_id << endl;
 	}
-	void Modify_Limit(){//ä¿®æ”¹æ­¥æ•°ä¸Šé™ done
+	void Modify_Limit(){//ĞŞ¸Ä²½ÊıÉÏÏŞ done
 		int x;
 		cin >> x;
-		game.limit = x;//ä¿®æ”¹æ­¥æ•°ä¸Šé™ï¼ˆå…¨å±€å˜é‡ï¼‰ 
+		game.limit = x;//ĞŞ¸Ä²½ÊıÉÏÏŞ£¨È«¾Ö±äÁ¿£© 
 	}
 	void Print_cell(bool is_robot, int light, int height){
-	//æ˜¯å¦æœ‰æœºå™¨äºº  ç¯ æ— 0  ç­1 äº®2 é«˜åº¦
+	//ÊÇ·ñÓĞ»úÆ÷ÈË  µÆ ÎŞ0  Ãğ1 ÁÁ2 ¸ß¶È
 		if(height == 0)return;
-		if(is_robot){//æœ‰æœºå™¨äºº 
+		if(is_robot){//ÓĞ»úÆ÷ÈË 
 			//cout << "/e[RED_FRONT;GREY_BACK;BLODm" << height;
 			if(light == 0)cout << "\e[91;100;1m" << height;
 			else if(light == 1)cout << "\e[91;104;1m" << height;
 			else cout << "\e[91;103;1m" << height;
 		}
-		else if(light == 0){//æ™®é€šæ ¼å­ 
+		else if(light == 0){//ÆÕÍ¨¸ñ×Ó 
 			cout << "\e[92;100;1m" << height;
 		}
-		else if(light == 1){//æœ‰ç­çš„ç¯ 
+		else if(light == 1){//ÓĞÃğµÄµÆ 
 			cout << "\e[92;104;1m" << height;
 		}
 		else{
@@ -277,7 +362,7 @@ struct order{//äº¤äº’æ¨¡å—å‡½æ•°
 				for(int k = 1; k <= readin.num_lights; k++){
 					if(readin.lights[k].pos.x == i && readin.lights[k].pos.y == j){
 						light = readin.lights[k].lighten;
-						light++;//01 å˜æˆ 12
+						light++;//01 ±ä³É 12
 						break; 
 					}
 				}
@@ -291,13 +376,13 @@ struct order{//äº¤äº’æ¨¡å—å‡½æ•°
 		else if(a == LEFT)cout << "left";
 		else cout << "right";
 	}
-	void Print_Status(){//è¾“å‡ºå½“å‰çŠ¶æ€ 
+	void Print_Status(){//Êä³öµ±Ç°×´Ì¬ 
 		cout << "Map Name: " << game.map_name << endl;
 		cout << "Autosave: ";
-		if(game.auto_save_id = 1)cout << game.save_path << endl;
+		if(game.auto_save_id == 1)cout << game.save_path << endl;
 		else cout << "OFF" << endl;
 		cout << "Step Limit: " << game.limit << endl;
-		Print_map(game.map_init);//åœ¨å‘½ä»¤è¡Œ æ‰“å°ç®€ç•¥ç‰ˆåœ°å›¾
+		Print_map(game.map_init);//ÔÚÃüÁîĞĞ ´òÓ¡¼òÂÔ°æµØÍ¼
 		
 		cout << "Robot is facing ";
 		print_robot_dir(game.map_init.robot.dir);
@@ -310,29 +395,60 @@ struct order{//äº¤äº’æ¨¡å—å‡½æ•°
 		}
 		cout << "]" << endl;
 	}
-	void Modify_op(){//ç¼–è¾‘æŒ‡ä»¤åºåˆ— ï¼ˆæ–°å»ºï¼‰  done
+	void info(int sign){//¸ø³öĞÅÏ¢ 
+		if(sign == 1)cout << "µ±Ç°ÎÄ¼ş²»´æÔÚ" << endl;
+		else if(sign == 2)cout << "ÊäÈëÖ¸ÁîĞòÁĞ³¬³öµØÍ¼ÉÏÏŞ" << endl; 
+	}
+	void Modify_op(){//±à¼­Ö¸ÁîĞòÁĞ £¨ĞÂ½¨£©  done ÒÑ¾­¼ÓÈëÅĞ¶ÏÖ¸ÁîÊı³¬¹ıµØÍ¼ÉÏÏŞ 
 		cin >> use;
-		freopen("use", "w", stdout);
+		cout << use << endl;
+		freopen(use,"w",stdout);
+		//cout << use << endl;
 		int n = read();
 		cout << n << endl;
 		for(int i = 1; i <= n; i++){
-			string nd;//å‘½åå¾ˆéšæ„ï¼ˆneedï¼‰
+			string nd;//ÃüÃûºÜËæÒâ£¨need£©
 			getline(cin, nd);
 			cout << nd << endl; 
 		}
 		freopen("CON", "w", stdout);
-	}
-	void info(int sign){//ç»™å‡ºä¿¡æ¯ 
-		if(sign == 1)cout << "å½“å‰æ–‡ä»¶ä¸å­˜åœ¨" << endl;
-	}
-	void Run(){//æ‰§è¡ŒæŒ‡ä»¤åºåˆ— 
-		cin >> use;
-		//äº¤ç»™ç¬¬äºŒæ¨¡å— æ‰§è¡Œ Robot_run
-		// è¿”å› ç»“æŸåŸå›    +   æ­¥æ•°  
-		Result rs = module_2.Robot_run(use);
-		cout << "Step(s) used: " << rs.steps <<endl; //æ­¥æ•° 
-		//ç»§ç»­æ‰“å°ä¿¡æ¯ 
 		
+//		cout << game.proc_num_limit << endl;
+//		for(int i = 0; i < game.proc_num_limit; i++){
+//			cout<<game.proc_limit[i]<<endl;
+//		}
+		
+		freopen(use,"r",stdin);//¿ªÊ¼ÅĞ¶Ï¶ÁÈëĞòÁĞÊÇ·ñºÏ·¨ 
+		int check = 1;
+		int op_num = read();
+		if(op_num > game.proc_num_limit)check = 0;
+		for(int i = 0; i < op_num; i++){
+			int x = read();
+			if(x > game.proc_limit[i])check = 0;
+			for(int j = 1; j <= x; j++){
+				cin >> use;
+			}
+		}
+		if(!check)info(2);
+		else cout << "³É¹¦¶ÁÈëĞòÁĞ" << endl; 
+		freopen("CON","r",stdin);
+	}
+	void Run(){//Ö´ĞĞÖ¸ÁîĞòÁĞ 
+		cin >> use;
+		//½»¸øµÚ¶şÄ£¿é Ö´ĞĞ Robot_run
+		// ·µ»Ø ½áÊøÔ­Òò   +   ²½Êı  
+		Result rs = module_2.Robot_run(use);
+		cout << "Step(s) used: " << game.map_run.robot.step_run <<endl; //µ±Ç°»¨·ÑµÄ²½Êı 
+		//¼ÌĞø´òÓ¡ĞÅÏ¢ 
+		if(rs.result == LIGHT){
+			cout << "¹§Ï²Äã£¡Ë³ÀûÍ¨¹ıÓÎÏ·" << endl;
+		}
+		if(rs.result == DARK){
+			cout << "ÒÑÍê³ÉËùÓĞ²½Öè" << endl;
+		}
+		else if(rs.result == LIMIT){
+			cout << "ÒÑ¾­µ½´ï²½ÊıÉÏÏŞ" << endl; 
+		}
 	}
 }od;
 
@@ -344,22 +460,23 @@ void work(){
 	char s[10];//LOAD AUTOSAVE LIMIT STATUS OP RUN EXIT 
 	while(1){
 		cin >> s;
+		//cout << s[0] << endl;
 		if(s[0] == 'E'){
 			return;
 		}
-		if(s[0] == 'L' && s[1] == 'O'){//åŠ è½½åœ°å›¾ 
+		if(s[0] == 'L' && s[1] == 'O'){//¼ÓÔØµØÍ¼ 
 			od.LOAD();
 		}
-		else if(s[0] == 'A'){//è®¾ç½®è‡ªåŠ¨ä¿å­˜ 
+		else if(s[0] == 'A'){//ÉèÖÃ×Ô¶¯±£´æ 
 			od.AUTOSAVE();
 		}
-		else if(s[0] == 'L'){//è®¾ç½®æ­¥æ•°é™åˆ¶ 
+		else if(s[0] == 'L'){//ÉèÖÃ²½ÊıÏŞÖÆ 
 			od.Modify_Limit();
 		}
-		else if(s[0] == 'S'){//è¾“å‡ºé…ç½® 
+		else if(s[0] == 'S'){//Êä³öÅäÖÃ 
 			od.Print_Status();
 		}
-		else if(s[0] == 'O'){//ç¼–è¾‘æŒ‡ä»¤åºåˆ— 
+		else if(s[0] == 'O'){//±à¼­Ö¸ÁîĞòÁĞ 
 			od.Modify_op();
 		}
 		else if(s[0] == 'R'){//RUN
@@ -368,6 +485,8 @@ void work(){
 	}
 }
 int main(){
+//	Direction a = LEFT;
+//	cout << a << endl;
 	work();
 	//od.LOAD();
 	//od.Print_Status();
